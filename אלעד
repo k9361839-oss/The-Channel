@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>אלעדים על המפה</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
+
+    <style>
+        :root {
+            --bg: #e5ddd5; --header: #075e54; --msg: #ffffff;
+            --text: #000; --accent: #25d366; --side: #ffffff;
+        }
+        [data-theme="dark"] {
+            --bg: #0b141a; --header: #202c33; --msg: #212c33;
+            --text: #e9edef; --accent: #00a884; --side: #111b21;
+        }
+
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; overflow: hidden; display: flex; flex-direction: column; height: 100vh; }
+        
+        /* סרגל עליון */
+        header { background: var(--header); color: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .info h2 { margin: 0; font-size: 1.2rem; }
+        .info span { font-size: 0.8rem; opacity: 0.9; }
+
+        /* אזור הודעות */
+        #chat-window { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+        .msg { background: var(--msg); padding: 10px; border-radius: 8px; max-width: 70%; position: relative; box-shadow: 0 1px 2px rgba(0,0,0,0.1); align-self: flex-start; }
+        .msg.owner { border-right: 4px solid gold; }
+        .msg-meta { font-size: 0.7rem; color: #888; display: flex; justify-content: space-between; }
+        .tag-all { color: #ff5252; font-weight: bold; }
+
+        /* כפתורי פעולה */
+        .actions { margin-top: 8px; display: flex; gap: 10px; border-top: 1px solid #eee; padding-top: 5px; }
+        .actions button { background: none; border: none; cursor: pointer; font-size: 0.8rem; color: var(--header); }
+
+        /* תיבת כתיבה */
+        footer { background: var(--header); padding: 10px; display: flex; gap: 10px; align-items: center; }
+        #input-msg { flex: 1; padding: 10px 15px; border-radius: 20px; border: none; outline: none; }
+        .btn-send { background: var(--accent); color: white; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 1.2rem; }
+
+        /* חלונית תגובות צפה */
+        #reply-box { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--side); width: 320px; border-radius: 12px; box-shadow: 0 0 20px rgba(0,0,0,0.4); z-index: 1000; padding: 15px; }
+        
+        .scroll-btn { position: fixed; bottom: 80px; left: 20px; background: white; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+        
+        .admin-controls { display: none; margin-top: 5px; }
+        .is-admin .admin-controls { display: block; }
+    </style>
+</head>
+<body data-theme="light">
+
+<header>
+    <div class="info">
+        <h2 id="channel-title">אלעדים על המפה</h2>
+        <span id="stat-count">טוען נתונים...</span>
+    </div>
+    <div style="display: flex; gap: 10px; align-items: center;">
+        <input type="number" id="jump-to" placeholder="עבור ל-#" style="width: 60px; border-radius: 4px; border: none; padding: 5px;">
+        <button onclick="toggleMode()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">🌓</button>
+        <button id="login-btn" onclick="login()" style="background:white; border:none; padding: 5px 10px; border-radius: 5px; cursor:pointer;">התחבר עם Google</button>
+    </div>
+</header>
+
+<main id="chat-window">
+    </main>
+
+<div class="scroll-btn" onclick="scrollToEnd()">🔽</div>
+
+<div id="reply-box">
+    <div style="display:flex; justify-content:space-between;">
+        <strong>תגובות להודעה</strong>
+        <button onclick="closeReply()">X</button>
+    </div>
+    <hr>
+    <div id="reply-list" style="height:150px; overflow-y:auto; margin-bottom:10px;"></div>
+    <input type="text" id="reply-input" placeholder="כתוב תגובה..." style="width:80%;">
+    <button onclick="sendReply()">➡️</button>
+</div>
+
+<footer>
+    <label for="file-input" style="cursor:pointer; font-size: 1.5rem;">📎</label>
+    <input type="file" id="file-input" style="display:none;" onchange="uploadFile()">
+    <input type="text" id="input-msg" placeholder="הקלד הודעה... (השתמש ב-@ לתיוג)">
+    <button class="btn-send" onclick="sendMsg()">⬅️</button>
+</footer>
+
+<script>
+    // הגדרות Firebase - יש להחליף בנתונים שלך מהקונסול של Firebase
+    const firebaseConfig = {
+        apiKey: "YOUR_API_KEY",
+        authDomain: "YOUR_AUTH_DOMAIN",
+        databaseURL: "YOUR_DATABASE_URL",
+        projectId: "YOUR_PROJECT_ID",
+        storageBucket: "YOUR_STORAGE_BUCKET",
+        messagingSenderId: "YOUR_SENDER_ID",
+        appId: "YOUR_APP_ID"
+    };
+
+    // אתחול
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const auth = firebase.auth();
+
+    let user = null;
+    let myId = "YOUR_GOOGLE_ID"; // הכנס כאן את ה-UID שלך כדי להיות בעלים
+
+    function login() {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        auth.signInWithPopup(provider);
+    }
+
+    auth.onAuthStateChanged(u => {
+        if (u) {
+            user = u;
+            document.getElementById('login-btn').innerText = "שלום, " + u.displayName.split(' ')[0];
+        }
+    });
+
+    // שליחת הודעה
+    function sendMsg() {
+        const text = document.getElementById('input-msg').value;
+        if (!text || !user) return;
+
+        const isOwner = user.uid === myId;
+        const msgRef = db.ref('msgs').push();
+        msgRef.set({
+            name: user.displayName,
+            text: text,
+            uid: user.uid,
+            timestamp: Date.now(),
+            isOwner: isOwner
+        });
+        document.getElementById('input-msg').value = "";
+    }
+
+    // הצגת הודעות
+    db.ref('msgs').on('child_added', snap => {
+        const data = snap.val();
+        const msgHtml = `
+            <div class="msg ${data.isOwner ? 'owner' : ''}" id="msg-${snap.key}">
+                <div class="msg-meta">
+                    <span>${data.name} | #${snap.key.substr(-3)}</span>
+                </div>
+                <div class="msg-body">${formatText(data.text)}</div>
+                <div class="actions">
+                    <button onclick="openReply('${snap.key}')">💬 תגובות</button>
+                    <button onclick="react('${snap.key}')">😊</button>
+                    <button onclick="report('${snap.key}')" style="color:red">🚩 דווח</button>
+                    ${(user && (user.uid === myId || data.isAdmin)) ? `<button onclick="deleteMsg('${snap.key}')">🗑️</button>` : ''}
+                </div>
+            </div>
+        `;
+        document.getElementById('chat-window').innerHTML += msgHtml;
+        scrollToEnd();
+    });
+
+    function formatText(t) {
+        return t.replace(/@כולם/g, '<span class="tag-all">@כולם</span>');
+    }
+
+    function toggleMode() {
+        const b = document.body;
+        b.setAttribute('data-theme', b.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+    }
+
+    function scrollToEnd() {
+        const win = document.getElementById('chat-window');
+        win.scrollTop = win.scrollHeight;
+    }
+
+    function openReply(id) { document.getElementById('reply-box').style.display = 'block'; }
+    function closeReply() { document.getElementById('reply-box').style.display = 'none'; }
+    function report(id) { alert("דיווח נשלח למנהלים."); }
+    function deleteMsg(id) { if(confirm("למחוק?")) db.ref('msgs/'+id).remove(); }
+</script>
+
+</body>
+</html>
