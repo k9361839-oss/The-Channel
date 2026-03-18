@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>אלעדים על המפה - Modern</title>
+    <title>אלעדים על המפה | ערוץ רשמי</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
@@ -11,118 +11,138 @@
 
     <style>
         :root {
-            --bg: #efe7de; --header: #008069; --msg-in: #ffffff;
-            --text: #111b21; --accent: #00a884; --white: #ffffff;
-            --blue-icon: #007bff;
+            --main-teal: #008069;
+            --bg-light: #efe7de;
+            --white: #ffffff;
+            --blue-send: #007bff;
+            --msg-me: #dcf8c6;
+            --msg-other: #ffffff;
+            --text-main: #111b21;
         }
+
         [data-theme="dark"] {
-            --bg: #0b141a; --header: #202c33; --msg-in: #212c33;
-            --text: #e9edef; --accent: #00a884; --white: #111b21;
+            --main-teal: #202c33;
+            --bg-light: #0b141a;
+            --white: #2a3942;
+            --msg-me: #005c4b;
+            --msg-other: #202c33;
+            --text-main: #e9edef;
         }
 
-        body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; height: 100vh; transition: 0.3s; }
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background-color: var(--bg-light); 
+            color: var(--text-main);
+            margin: 0; display: flex; flex-direction: column; height: 100vh;
+            transition: all 0.3s ease;
+        }
 
-        /* סרגל עליון מעוצב */
+        /* סרגל עליון חדיש */
         header { 
-            background: var(--header); color: white; padding: 12px 20px; 
+            background: var(--main-teal); color: white; padding: 15px 25px; 
             display: flex; justify-content: space-between; align-items: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1); z-index: 10;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-bottom: 1px solid rgba(255,255,255,0.1);
         }
-        .info h2 { margin: 0; font-size: 1.3rem; letter-spacing: 0.5px; }
-        .info span { font-size: 0.75rem; opacity: 0.8; font-weight: 300; }
 
-        /* כפתורי בקרה עגולים */
-        .round-btn {
-            width: 40px; height: 40px; border-radius: 50%; border: none;
-            background: rgba(255,255,255,0.2); color: white;
+        .brand h1 { margin: 0; font-size: 1.5rem; font-weight: 700; }
+        .brand span { font-size: 0.8rem; opacity: 0.8; }
+
+        .top-nav { display: flex; gap: 15px; align-items: center; }
+
+        /* כפתורים עגולים */
+        .circle-btn {
+            width: 42px; height: 42px; border-radius: 50%; border: none;
+            background: rgba(255,255,255,0.15); color: white;
             display: flex; align-items: center; justify-content: center;
-            cursor: pointer; font-size: 1.2rem; transition: 0.2s;
+            cursor: pointer; font-size: 1.2rem; transition: 0.3s;
         }
-        .round-btn:hover { background: rgba(255,255,255,0.3); }
+        .circle-btn:hover { background: rgba(255,255,255,0.3); transform: scale(1.05); }
 
-        #jump-to {
-            border-radius: 20px; border: none; padding: 8px 15px; 
-            width: 70px; outline: none; background: rgba(255,255,255,0.9);
+        /* אזור ההודעות */
+        #chat-flow { flex: 1; overflow-y: auto; padding: 25px; display: flex; flex-direction: column; gap: 12px; }
+
+        .bubble { 
+            padding: 12px 18px; border-radius: 22px; max-width: 70%; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.08); font-size: 1rem;
+            position: relative; line-height: 1.4;
         }
+        .bubble.other { background: var(--msg-other); align-self: flex-start; border-top-right-radius: 5px; }
+        .bubble.me { background: var(--msg-me); align-self: flex-end; border-top-left-radius: 5px; }
 
-        /* אזור ההודעות - בועות עגולות */
-        #chat-window { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 8px; }
-        
-        .msg { 
-            background: var(--msg-in); padding: 10px 15px; 
-            border-radius: 18px; border-top-right-radius: 2px; /* סגנון וואטסאפ */
-            max-width: 75%; position: relative; 
-            box-shadow: 0 1px 0.5px rgba(0,0,0,0.13); align-self: flex-start;
-        }
-        .msg.owner { background: #dcf8c6; border-top-right-radius: 18px; border-top-left-radius: 2px; align-self: flex-end; }
-        [data-theme="dark"] .msg.owner { background: #005c4b; }
-
-        /* תמונת פרופיל עגולה */
-        .user-pic { width: 38px; height: 38px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .bubble .meta { font-size: 0.7rem; font-weight: bold; margin-bottom: 4px; display: block; }
+        .bubble .msg-id { font-size: 0.6rem; opacity: 0.5; margin-top: 5px; display: block; text-align: left; }
 
         /* תיבת כתיבה תחתונה */
         footer { 
-            background: var(--header); padding: 12px 15px; 
-            display: flex; gap: 12px; align-items: center;
-            border-top: 1px solid rgba(0,0,0,0.05);
-        }
-        #input-msg { 
-            flex: 1; padding: 12px 20px; border-radius: 25px; 
-            border: none; outline: none; font-size: 1rem;
-            background: var(--white);
+            background: var(--main-teal); padding: 15px 20px; 
+            display: flex; gap: 15px; align-items: center;
         }
 
-        /* כפתור שליחה: עיגול לבן, חץ כחול */
-        .btn-send { 
-            background: white; color: var(--blue-icon); border: none; 
-            border-radius: 50%; width: 48px; height: 48px; 
-            cursor: pointer; font-size: 1.4rem; display: flex;
+        .input-wrapper { 
+            flex: 1; background: var(--white); border-radius: 30px; 
+            padding: 5px 20px; display: flex; align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        #message-input { flex: 1; border: none; padding: 10px; outline: none; background: transparent; color: var(--text-main); font-size: 1rem; }
+
+        /* כפתור שליחה: עיגול לבן עם חץ כחול */
+        .send-trigger { 
+            background: white; color: var(--blue-send); border: none; 
+            border-radius: 50%; width: 50px; height: 50px; 
+            cursor: pointer; font-size: 1.6rem; display: flex;
             align-items: center; justify-content: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: transform 0.2s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2); transition: 0.2s;
         }
-        .btn-send:active { transform: scale(0.9); }
+        .send-trigger:hover { transform: translateY(-2px); }
 
-        /* חץ ירידה לסוף */
-        .scroll-down {
-            position: fixed; bottom: 85px; left: 20px;
-            background: var(--white); color: var(--header);
-            width: 42px; height: 42px; border-radius: 50%;
+        /* תמונת פרופיל עגולה */
+        .profile-img { width: 40px; height: 40px; border-radius: 50%; border: 2px solid white; object-fit: cover; }
+
+        .scroll-down-btn {
+            position: fixed; bottom: 95px; left: 25px;
+            background: var(--white); color: var(--main-teal);
+            width: 45px; height: 45px; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
-            cursor: pointer; box-shadow: 0 3px 8px rgba(0,0,0,0.2);
-            font-size: 1.2rem;
+            cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+            font-size: 1.3rem; z-index: 100;
         }
     </style>
 </head>
 <body data-theme="light">
 
 <header>
-    <div class="info">
-        <h2>אלעדים על המפה</h2>
-        <span id="user-stats">1,402 מחוברים לעדכונים</span>
+    <div class="brand">
+        <h1>אלעדים על המפה</h1>
+        <span id="counter">מתחברים לקהילה...</span>
     </div>
-    <div style="display: flex; gap: 12px; align-items: center;">
-        <input type="number" id="jump-to" placeholder="עבור ל-#">
-        <button class="round-btn" id="theme-icon" onclick="toggleMode()">☀️</button>
-        <div id="auth-container">
-            <button onclick="login()" id="login-btn" style="background:white; border:none; padding: 8px 15px; border-radius: 20px; font-weight:600; cursor:pointer;">Google התחבר</button>
+    <div class="top-nav">
+        <input type="number" id="jump-box" placeholder="#" style="width: 50px; border-radius: 15px; border: none; padding: 8px;">
+        <button class="circle-btn" id="theme-btn" onclick="toggleTheme()">☀️</button>
+        <div id="user-display">
+            <button onclick="loginGoogle()" style="background:white; border:none; padding: 10px 20px; border-radius: 25px; font-weight:bold; cursor:pointer;">התחבר עם גוגל</button>
         </div>
     </div>
 </header>
 
-<main id="chat-window">
+<main id="chat-flow">
     </main>
 
-<div class="scroll-down" onclick="scrollToEnd()">⬇️</div>
+<div class="scroll-down-btn" onclick="goBottom()">🔽</div>
 
 <footer>
-    <label for="file-in" style="cursor:pointer; color: white; font-size: 1.6rem;">📎</label>
-    <input type="file" id="file-in" style="display:none;">
-    <input type="text" id="input-msg" placeholder="הקלד הודעה כאן...">
-    <button class="btn-send" onclick="sendMsg()">➤</button>
+    <label for="upload" style="cursor:pointer; font-size: 1.8rem; color: white;">📎</label>
+    <input type="file" id="upload" style="display:none;">
+    
+    <div class="input-wrapper">
+        <input type="text" id="message-input" placeholder="כתוב הודעה לערוץ...">
+        <span style="cursor:pointer; font-size: 1.4rem;">😊</span>
+    </div>
+
+    <button class="send-trigger" onclick="pushMsg()">➤</button>
 </footer>
 
 <script>
-    // הגדרות Firebase - חובה להחליף בנתונים שלך
+    // --- כאן תדביק את המפתחות שלך מ-FIREBASE ---
     const firebaseConfig = {
         apiKey: "YOUR_API_KEY",
         authDomain: "YOUR_PROJECT.firebaseapp.com",
@@ -137,62 +157,58 @@
     const db = firebase.database();
     const auth = firebase.auth();
 
-    let user = null;
+    let me = null;
 
-    function login() {
+    function loginGoogle() {
         const provider = new firebase.auth.GoogleAuthProvider();
         auth.signInWithPopup(provider);
     }
 
-    auth.onAuthStateChanged(u => {
-        if (u) {
-            user = u;
-            document.getElementById('auth-container').innerHTML = `<img src="${u.photoURL}" class="user-pic" title="${u.displayName}">`;
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            me = user;
+            document.getElementById('user-display').innerHTML = `<img src="${user.photoURL}" class="profile-img" title="${user.displayName}">`;
         }
     });
 
-    function toggleMode() {
-        const body = document.body;
-        const icon = document.getElementById('theme-icon');
-        if (body.getAttribute('data-theme') === 'light') {
-            body.setAttribute('data-theme', 'dark');
-            icon.innerText = '🌙';
-        } else {
-            body.setAttribute('data-theme', 'light');
-            icon.innerText = '☀️';
-        }
+    function toggleTheme() {
+        const b = document.body;
+        const btn = document.getElementById('theme-btn');
+        const isLight = b.getAttribute('data-theme') === 'light';
+        b.setAttribute('data-theme', isLight ? 'dark' : 'light');
+        btn.innerText = isLight ? '🌙' : '☀️';
     }
 
-    function sendMsg() {
-        const input = document.getElementById('input-msg');
-        if (!input.value || !user) return;
+    function pushMsg() {
+        const inp = document.getElementById('message-input');
+        if (!inp.value || !me) return;
         
-        db.ref('msgs').push({
-            name: user.displayName,
-            text: input.value,
-            uid: user.uid,
-            time: Date.now()
+        db.ref('messages').push({
+            user: me.displayName,
+            text: inp.value,
+            uid: me.uid,
+            timestamp: Date.now()
         });
-        input.value = "";
+        inp.value = "";
     }
 
-    db.ref('msgs').limitToLast(50).on('child_added', snap => {
+    db.ref('messages').on('child_added', snap => {
         const data = snap.val();
-        const isMe = user && data.uid === user.uid;
-        const msgDiv = document.createElement('div');
-        msgDiv.className = `msg ${isMe ? 'owner' : ''}`;
-        msgDiv.innerHTML = `
-            <div style="font-size:0.7rem; font-weight:bold; margin-bottom:3px;">${data.name}</div>
+        const isMe = me && data.uid === me.uid;
+        const div = document.createElement('div');
+        div.className = `bubble ${isMe ? 'me' : 'other'}`;
+        div.innerHTML = `
+            <span class="meta">${data.user}</span>
             <div>${data.text}</div>
-            <div style="font-size:0.6rem; text-align:left; margin-top:4px; opacity:0.6;">#${snap.key.substr(-4)}</div>
+            <span class="msg-id">#${snap.key.substr(-4)}</span>
         `;
-        document.getElementById('chat-window').appendChild(msgDiv);
-        scrollToEnd();
+        document.getElementById('chat-flow').appendChild(div);
+        goBottom();
     });
 
-    function scrollToEnd() {
-        const win = document.getElementById('chat-window');
-        win.scrollTo({ top: win.scrollHeight, behavior: 'smooth' });
+    function goBottom() {
+        const flow = document.getElementById('chat-flow');
+        flow.scrollTo({ top: flow.scrollHeight, behavior: 'smooth' });
     }
 </script>
 
