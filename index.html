@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>אלעדים על המפה | Pro Edition</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
+
+    <style>
+        :root {
+            --primary: #008069; --bg: #efe7de; --white: #ffffff;
+            --msg-me: #dcf8c6; --msg-other: #ffffff; --text: #111b21;
+            --accent-blue: #007bff;
+        }
+        [data-theme="dark"] {
+            --primary: #202c33; --bg: #0b141a; --white: #2a3942;
+            --msg-me: #005c4b; --msg-other: #202c33; --text: #e9edef;
+        }
+
+        body { 
+            font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); 
+            margin: 0; display: flex; flex-direction: column; height: 100vh; transition: 0.3s;
+        }
+
+        /* Header המעוצב */
+        header {
+            background: var(--primary); color: white; padding: 15px 25px;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 100;
+        }
+        .logo h1 { margin: 0; font-size: 1.6rem; font-weight: 800; }
+        .logo span { font-size: 0.85rem; opacity: 0.8; }
+
+        /* כפתורים עגולים בראש הדף */
+        .top-btn {
+            width: 45px; height: 45px; border-radius: 50%; border: none;
+            background: rgba(255,255,255,0.2); color: white;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            font-size: 1.3rem; transition: 0.3s;
+        }
+        .top-btn:hover { background: rgba(255,255,255,0.4); transform: scale(1.1); }
+
+        /* אזור ההודעות */
+        #chat-flow {
+            flex: 1; overflow-y: auto; padding: 20px;
+            display: flex; flex-direction: column; gap: 15px;
+            background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
+            background-blend-mode: overlay;
+        }
+
+        /* בועות הודעה עגולות ויפות */
+        .bubble {
+            max-width: 75%; padding: 12px 18px; border-radius: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1); position: relative;
+            font-size: 1rem; line-height: 1.4; color: var(--text);
+            animation: slideIn 0.4s ease;
+        }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        .bubble.me { align-self: flex-start; background: var(--msg-me); border-bottom-right-radius: 4px; }
+        .bubble.other { align-self: flex-end; background: var(--msg-other); border-bottom-left-radius: 4px; }
+
+        .bubble .user-label { font-size: 0.75rem; font-weight: bold; color: var(--primary); margin-bottom: 5px; display: block; }
+
+        /* כפתור ירידה לסוף */
+        .scroll-down {
+            position: fixed; bottom: 100px; left: 30px;
+            background: white; width: 45px; height: 45px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.2); font-size: 1.4rem;
+        }
+
+        /* Footer - תיבת כתיבה */
+        footer {
+            background: var(--primary); padding: 15px 25px;
+            display: flex; align-items: center; gap: 15px;
+        }
+
+        .input-container {
+            flex: 1; background: var(--white); border-radius: 35px;
+            padding: 5px 20px; display: flex; align-items: center;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+
+        #main-input {
+            flex: 1; border: none; padding: 12px; outline: none;
+            font-size: 1.05rem; background: transparent; color: var(--text);
+        }
+
+        /* כפתור שליחה: עיגול לבן עם חץ כחול */
+        .send-pill {
+            width: 55px; height: 55px; border-radius: 50%;
+            background: white; color: var(--accent-blue);
+            border: none; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.8rem; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            transition: 0.2s;
+        }
+        .send-pill:active { transform: scale(0.85); }
+
+        .profile-img { width: 45px; height: 45px; border-radius: 50%; border: 2px solid white; object-fit: cover; }
+    </style>
+</head>
+<body data-theme="light">
+
+<header>
+    <div class="logo">
+        <h1>אלעדים על המפה</h1>
+        <span id="user-stats">1,500+ חברים בקהילה</span>
+    </div>
+    <div style="display: flex; gap: 15px; align-items: center;">
+        <input type="number" id="msg-search" placeholder="#" style="width: 50px; border-radius: 15px; border: none; padding: 10px;">
+        <button class="top-btn" id="theme-toggle" onclick="changeTheme()">☀️</button>
+        <div id="auth-ui">
+            <button onclick="login()" style="background:white; border:none; padding: 10px 20px; border-radius: 25px; font-weight:bold; cursor:pointer;">כניסה</button>
+        </div>
+    </div>
+</header>
+
+<main id="chat-flow">
+    <div class="bubble other">
+        <span class="user-label">מנהל המערכת</span>
+        ברוכים הבאים לערוץ אלעדים על המפה! כאן תוכלו להתעדכן בכל מה שקורה בעיר.
+        <div style="font-size:0.6rem; margin-top:5px; opacity:0.5;">#001</div>
+    </div>
+    <div class="bubble me">
+        <span class="user-label">אתה (בעלים)</span>
+        מבחן עיצוב: הבועות עגולות, הכפתור כחול והכל נראה מודרני! 😊
+        <div style="font-size:0.6rem; margin-top:5px; opacity:0.5;">#002</div>
+    </div>
+</main>
+
+<div class="scroll-down" onclick="jumpToBottom()">🔽</div>
+
+<footer>
+    <label for="file-upload" style="cursor:pointer; font-size: 1.8rem; color: white;">📎</label>
+    <input type="file" id="file-upload" style="display:none;">
+    
+    <div class="input-container">
+        <input type="text" id="main-input" placeholder="הקלד הודעה חדשה...">
+        <span style="font-size: 1.6rem; cursor:pointer;">😊</span>
+    </div>
+
+    <button class="send-pill" onclick="handleSend()">➤</button>
+</footer>
+
+<script>
+    // הגדרות Firebase - חובה להחליף במפתחות שלך כדי שזה יעבוד באמת!
+    const firebaseConfig = {
+        apiKey: "YOUR_API_KEY",
+        authDomain: "YOUR_PROJECT.firebaseapp.com",
+        databaseURL: "https://YOUR_PROJECT.firebaseio.com",
+        projectId: "YOUR_PROJECT",
+        storageBucket: "YOUR_PROJECT.appspot.com",
+        messagingSenderId: "YOUR_ID",
+        appId: "YOUR_APP_ID"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const auth = firebase.auth();
+
+    let me = null;
+
+    function login() {
+        auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+    }
+
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            me = user;
+            document.getElementById('auth-ui').innerHTML = `<img src="${user.photoURL}" class="profile-img">`;
+        }
+    });
+
+    function changeTheme() {
+        const b = document.body;
+        const btn = document.getElementById('theme-toggle');
+        const dark = b.getAttribute('data-theme') === 'dark';
+        b.setAttribute('data-theme', dark ? 'light' : 'dark');
+        btn.innerText = dark ? '☀️' : '🌙';
+    }
+
+    function handleSend() {
+        const txt = document.getElementById('main-input').value;
+        if (!txt || !me) {
+            if(!me) alert("יש להתחבר קודם!");
+            return;
+        }
+        db.ref('messages').push({
+            user: me.displayName,
+            text: txt,
+            uid: me.uid,
+            time: Date.now()
+        });
+        document.getElementById('main-input').value = "";
+    }
+
+    db.ref('messages').on('child_added', snap => {
+        const data = snap.val();
+        const isMe = me && data.uid === me.uid;
+        const div = document.createElement('div');
+        div.className = `bubble ${isMe ? 'me' : 'other'}`;
+        div.innerHTML = `
+            <span class="user-label">${data.user}</span>
+            <div>${data.text}</div>
+            <div style="font-size:0.6rem; margin-top:5px; opacity:0.5;">#${snap.key.substr(-3)}</div>
+        `;
+        document.getElementById('chat-flow').appendChild(div);
+        jumpToBottom();
+    });
+
+    function jumpToBottom() {
+        const flow = document.getElementById('chat-flow');
+        flow.scrollTo({ top: flow.scrollHeight, behavior: 'smooth' });
+    }
+</script>
+
+</body>
+</html>
