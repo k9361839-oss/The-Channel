@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>אלעדים על המפה - צ'אט חדש</title>
+    <title>אלעדים על המפה - צ'אט רשמי</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
@@ -13,40 +13,20 @@
         :root { --bar-bg: #ffffff; --text-color: #111b21; --chat-bg: #efe7de; --msg-me: #dcf8c6; --msg-other: #ffffff; }
         body.dark-mode { --bar-bg: #111b21; --text-color: #ffffff; --chat-bg: #0b141a; --msg-other: #202c33; --msg-me: #005c4b; }
         body, html { margin: 0; padding: 0; height: 100%; font-family: 'Segoe UI', sans-serif; overflow: hidden; display: flex; flex-direction: column; }
-        
-        header { 
-            background: var(--bar-bg); color: var(--text-color); padding: 10px 20px; 
-            display: flex; align-items: center; justify-content: space-between;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 10;
-        }
-
+        header { background: var(--bar-bg); color: var(--text-color); padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 10; }
         .header-left { display: flex; align-items: center; gap: 12px; }
         .logo-img { width: 45px; height: 45px; border-radius: 50%; border: 1px solid #008069; object-fit: cover; }
-        
-        #chat-flow { 
-            flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px;
-            background-color: var(--chat-bg);
-            background-image: url('https://k9361839-oss.github.io/The-Channel/אלעדים על המפה.jpg');
-            background-repeat: no-repeat; background-position: center; background-size: 200px;
-            background-blend-mode: overlay;
-        }
-
+        #chat-flow { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; background-color: var(--chat-bg); background-image: url('https://k9361839-oss.github.io/The-Channel/אלעדים על המפה.jpg'); background-repeat: no-repeat; background-position: center; background-size: 200px; background-blend-mode: overlay; }
         .msg { max-width: 75%; padding: 10px 15px; border-radius: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.15); font-size: 1rem; color: #111b21; position: relative; }
         body.dark-mode .msg { color: #e9edef; }
         .msg.other { align-self: flex-start; background: var(--msg-other); border-top-right-radius: 2px; }
         .msg.me { align-self: flex-end; background: var(--msg-me); border-top-left-radius: 2px; }
         .msg-user { font-size: 0.75rem; font-weight: bold; margin-bottom: 4px; display: block; color: #008069; }
-        body.dark-mode .msg.me .msg-user { color: #53bdeb; }
-
         footer { background: var(--bar-bg); padding: 10px 15px; display: flex; align-items: center; gap: 10px; border-top: 1px solid rgba(0,0,0,0.1); }
-        .input-box { flex: 1; background: #f0f2f5; border-radius: 25px; display: flex; align-items: center; padding: 0 15px; }
+        .input-box { flex: 1; background: #f0f2f5; border-radius: 25px; display: flex; padding: 0 15px; }
         body.dark-mode .input-box { background: #2a3942; }
         #msg-input { flex: 1; border: none; padding: 12px; outline: none; background: transparent; color: var(--text-color); font-size: 1rem; }
-
-        .send-btn { 
-            background: #008069; color: white; border-radius: 50%; width: 45px; height: 45px; 
-            border: none; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; 
-        }
+        .send-btn { background: #008069; color: white; border-radius: 50%; width: 45px; height: 45px; border: none; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; }
         .mode-btn { background: none; border: none; color: var(--text-color); font-size: 1.4rem; cursor: pointer; }
         .login-btn { cursor:pointer; padding:5px 15px; border-radius:20px; border:1px solid #008069; background:white; color:#008069; font-weight:bold; }
     </style>
@@ -77,15 +57,14 @@
     </footer>
 
 <script>
-    // הגדרות Firebase מהפרויקט החדש שלך
     const firebaseConfig = {
-        apiKey: "AIzaSyD34DvQceSqmSlkFHN6uEZQamplRf-B46w",
-        authDomain: "eladim-new-chat.firebaseapp.com",
-        databaseURL: "https://eladim-new-chat-default-rtdb.firebaseio.com",
-        projectId: "eladim-new-chat",
-        storageBucket: "eladim-new-chat.firebasestorage.app",
-        messagingSenderId: "154785000335",
-        appId: "1:154785000335:web:50eb0ac6a8139ee1e0b9fa"
+        apiKey: "AIzaSyA3jI6XrKWvLb4KfqQz1GEgOHdjQRsu_KA",
+        authDomain: "eladim-final-chat.firebaseapp.com",
+        databaseURL: "https://eladim-final-chat-default-rtdb.firebaseio.com",
+        projectId: "eladim-final-chat",
+        storageBucket: "eladim-final-chat.firebasestorage.app",
+        messagingSenderId: "548712605637",
+        appId: "1:548712605637:web:b4c30d0641a86069444dac"
     };
 
     firebase.initializeApp(firebaseConfig);
@@ -102,7 +81,7 @@
         if (user) {
             currentUser = user;
             document.getElementById('auth-ui').innerHTML = `<img src="${user.photoURL}" style="width:35px; border-radius:50%; border:2px solid #008069;">`;
-            document.getElementById('status-text').innerText = "מחובר כ: " + user.displayName;
+            document.getElementById('status-text').innerText = "שלום, " + user.displayName;
         }
     });
 
