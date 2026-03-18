@@ -3,38 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>אלעדים על המפה - צ'אט מקצועי</title>
+    <title>אלעדים על המפה - המערכת המלאה</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
     <style>
-        :root { --main-green: #008069; --bg-chat: #efe7de; --msg-me: #dcf8c6; --msg-other: #ffffff; }
+        :root { --main-green: #008069; --bg-chat: #efe7de; --msg-me: #dcf8c6; --msg-other: #ffffff; --sidebar-bg: #f0f2f5; }
         body, html { margin: 0; padding: 0; height: 100%; font-family: 'Segoe UI', sans-serif; display: flex; overflow: hidden; }
-        #main-container { flex: 1; display: flex; flex-direction: column; background: var(--bg-chat); position: relative; }
         
-        /* Sidebar לשרשור */
-        #thread-sidebar { width: 300px; height: 100%; background: white; border-right: 1px solid #ddd; display: none; flex-direction: column; z-index: 20; position: absolute; left: 0; top: 0; box-shadow: 2px 0 5px rgba(0,0,0,0.1); }
-        #thread-header { padding: 15px; background: var(--main-green); color: white; display: flex; justify-content: space-between; }
-        #thread-msgs { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+        /* צ'אט ראשי */
+        #main-container { flex: 1; display: flex; flex-direction: column; background: var(--bg-chat); position: relative; border-left: 1px solid #ccc; }
+        
+        /* סיידבר שרשור (Thread) */
+        #thread-sidebar { width: 320px; height: 100%; background: white; display: none; flex-direction: column; box-shadow: -2px 0 5px rgba(0,0,0,0.1); z-index: 100; border-right: 1px solid #ddd; }
+        #thread-header { padding: 15px; background: #075e54; color: white; display: flex; justify-content: space-between; align-items: center; }
+        #thread-msgs { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: var(--bg-chat); }
 
         header { background: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd; }
         #chat-flow { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
         
-        .msg { max-width: 80%; padding: 8px 12px; border-radius: 8px; position: relative; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        .msg { max-width: 85%; padding: 10px; border-radius: 8px; position: relative; box-shadow: 0 1px 1px rgba(0,0,0,0.1); cursor: pointer; transition: 0.2s; }
+        .msg:hover { background-color: rgba(0,0,0,0.02); }
         .msg.me { align-self: flex-end; background: var(--msg-me); }
         .msg.other { align-self: flex-start; background: var(--msg-other); }
-        .msg-user { font-size: 0.7rem; font-weight: bold; color: var(--main-green); display: block; }
+        .msg-user { font-size: 0.75rem; font-weight: bold; color: #00a884; display: block; margin-bottom: 3px; }
         
-        .actions { font-size: 0.7rem; margin-top: 5px; display: flex; gap: 8px; opacity: 0.6; }
-        .actions span:hover { text-decoration: underline; cursor: pointer; opacity: 1; }
-        
-        .reactions { display: flex; gap: 4px; margin-top: 5px; flex-wrap: wrap; }
-        .reaction-badge { background: rgba(0,0,0,0.05); padding: 2px 6px; border-radius: 10px; font-size: 0.8rem; }
+        /* אימוג'ים וניהול */
+        .msg-tools { display: flex; gap: 10px; margin-top: 8px; font-size: 0.8rem; border-top: 1px solid rgba(0,0,0,0.05); padding-top: 5px; opacity: 0.7; }
+        .msg-tools span:hover { opacity: 1; cursor: pointer; color: var(--main-green); }
+        .reaction-area { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
+        .reac-tag { background: white; border: 1px solid #ddd; border-radius: 10px; padding: 2px 6px; font-size: 0.75rem; display: flex; align-items: center; gap: 3px; }
 
-        footer { padding: 10px; background: #f0f2f5; display: flex; gap: 10px; align-items: center; }
-        input { flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #ddd; outline: none; }
-        button { border: none; background: none; cursor: pointer; font-size: 1.2rem; }
-        .send-btn { background: var(--main-green); color: white; width: 40px; height: 40px; border-radius: 50%; }
+        footer { padding: 10px; background: #f0f2f5; display: flex; gap: 8px; align-items: center; }
+        .input-wrap { flex: 1; position: relative; display: flex; background: white; border-radius: 20px; padding: 5px 15px; align-items: center; }
+        input { border: none; flex: 1; padding: 8px; outline: none; font-size: 1rem; }
+        .btn-circle { background: var(--main-green); color: white; width: 40px; height: 40px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+        .emoji-btn { font-size: 1.3rem; cursor: pointer; background: none; border: none; }
     </style>
 </head>
 <body>
@@ -42,35 +46,35 @@
 <div id="main-container">
     <header>
         <div style="display:flex; align-items:center; gap:10px;">
-            <img src="https://k9361839-oss.github.io/The-Channel/אלעדים על המפה.jpg" style="width:40px; border-radius:50%;">
-            <b>אלעדים על המפה</b>
+            <img src="https://k9361839-oss.github.io/The-Channel/אלעדים על המפה.jpg" style="width:45px; height:45px; border-radius:50%; object-fit: cover;">
+            <div><b style="font-size:1.1rem;">אלעדים על המפה</b><br><small id="status">התחבר לצ'אט</small></div>
         </div>
-        <div id="user-info"><button onclick="login()">כניסה 🔑</button></div>
+        <div id="auth-area"><button onclick="login()" style="padding:8px 15px; border-radius:20px; cursor:pointer;">כניסה 🔑</button></div>
     </header>
 
     <div id="chat-flow"></div>
 
     <footer>
-        <button onclick="addEmoji('msg-input', '😊')">😊</button>
-        <input type="text" id="msg-input" placeholder="הקלד הודעה...">
-        <button class="send-btn" onclick="sendMessage()">➤</button>
+        <button class="emoji-btn" onclick="addEmoji('main-input', '😊')">😊</button>
+        <div class="input-wrap"><input type="text" id="main-input" placeholder="הודעה חדשה..."></div>
+        <button class="btn-circle" onclick="sendMessage('main-input', 'messages')">➤</button>
     </footer>
+</div>
 
-    <div id="thread-sidebar">
-        <div id="thread-header">
-            <span>שרשור תגובות</span>
-            <button onclick="closeThread()" style="color:white;">✖</button>
-        </div>
-        <div id="thread-msgs"></div>
-        <footer style="background:#eee;">
-            <input type="text" id="thread-input" placeholder="הגב בשרשור...">
-            <button onclick="sendThreadMsg()">➤</button>
-        </footer>
+<div id="thread-sidebar">
+    <div id="thread-header">
+        <b>שרשור תגובות</b>
+        <button onclick="closeThread()" style="background:none; border:none; color:white; font-size:1.5rem; cursor:pointer;">×</button>
     </div>
+    <div id="thread-msgs"></div>
+    <footer style="border-top: 1px solid #ddd;">
+        <button class="emoji-btn" onclick="addEmoji('thread-input', '💬')">💬</button>
+        <div class="input-wrap"><input type="text" id="thread-input" placeholder="הגב בשרשור..."></div>
+        <button class="btn-circle" onclick="sendReply()">➤</button>
+    </footer>
 </div>
 
 <script>
-    // הקונפיגורציה שלך
     const firebaseConfig = {
         apiKey: "AIzaSyCBOb3dKOpwZ3anv5N8Lqlv2x3PPuokBFg",
         authDomain: "eladim-chat-v2.firebaseapp.com",
@@ -84,108 +88,111 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     const auth = firebase.auth();
-    let user = null;
+    let currentUser = null;
     let activeThreadId = null;
 
-    // הגדרת מנהל (שים כאן את המייל שלך!)
-    const ADMIN_EMAIL = "k9361839@gmail.com"; 
+    // --- הגדרת מנהלים ---
+    const ADMINS = ["k9361839@gmail.com"]; // תחליף למייל שלך
 
-    function login() {
-        auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
-    }
+    function login() { auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
 
-    auth.onAuthStateChanged(u => {
-        user = u;
-        if(u) document.getElementById('user-info').innerHTML = `<img src="${u.photoURL}" style="width:35px; border-radius:50%;">`;
+    auth.onAuthStateChanged(user => {
+        currentUser = user;
+        if(user) {
+            document.getElementById('auth-area').innerHTML = `<img src="${user.photoURL}" style="width:38px; border-radius:50%; border:2px solid #00a884;">`;
+            document.getElementById('status').innerText = "מחובר כ: " + user.displayName;
+        }
     });
 
-    function sendMessage() {
-        const text = document.getElementById('msg-input').value;
-        if(!text || !user) return;
-        db.ref('messages').push({
-            uid: user.uid, name: user.displayName, text: text, timestamp: Date.now()
-        });
-        document.getElementById('msg-input').value = "";
+    function addEmoji(inputId, emoji) {
+        const icons = ['😊','😂','🔥','🙌','❤️','👍','😮'];
+        const input = document.getElementById(inputId);
+        const choice = prompt("בחר אימוג'י: " + icons.join(' '), emoji);
+        if(choice) input.value += choice;
     }
 
-    // טעינת הודעות ראשיות
-    db.ref('messages').on('value', snapshot => {
+    function sendMessage(inputId, path) {
+        const text = document.getElementById(inputId).value;
+        if(!text || !currentUser) return;
+        db.ref(path).push({
+            uid: currentUser.uid, name: currentUser.displayName, text: text, timestamp: Date.now()
+        });
+        document.getElementById(inputId).value = "";
+    }
+
+    function sendReply() {
+        if(!activeThreadId) return;
+        sendMessage('thread-input', `messages/${activeThreadId}/replies`);
+    }
+
+    // טעינת צ'אט ראשי
+    db.ref('messages').on('value', snap => {
         const flow = document.getElementById('chat-flow');
         flow.innerHTML = "";
-        snapshot.forEach(child => {
-            const m = child.val();
-            const id = child.key;
-            const isMe = user && (m.uid === user.uid || user.email === ADMIN_EMAIL);
-            
-            const div = document.createElement('div');
-            div.className = `msg ${user && m.uid === user.uid ? 'me' : 'other'}`;
-            div.innerHTML = `
-                <span class="msg-user">${m.name}</span>
-                <div onclick="openThread('${id}')">${m.text}</div>
-                <div class="reactions" id="reac-${id}"></div>
-                <div class="actions">
-                    <span onclick="addReaction('${id}', '👍')">👍</span>
-                    <span onclick="openThread('${id}')">💬 תגובות</span>
-                    ${isMe ? `<span onclick="deleteMsg('${id}')">🗑️</span> <span onclick="editMsg('${id}', '${m.text}')">✏️</span>` : ''}
-                </div>
-            `;
-            flow.appendChild(div);
-            loadReactions(id);
+        snap.forEach(child => {
+            renderMessage(child, flow, 'messages');
         });
         flow.scrollTop = flow.scrollHeight;
     });
 
-    function deleteMsg(id) { if(confirm("למחוק?")) db.ref('messages/'+id).remove(); }
-    
-    function editMsg(id, oldText) {
-        const newText = prompt("ערוך הודעה:", oldText);
-        if(newText) db.ref('messages/'+id).update({ text: newText });
+    function renderMessage(child, container, basePath) {
+        const m = child.val();
+        const id = child.key;
+        const isAdmin = currentUser && ADMINS.includes(currentUser.email);
+        const isOwner = currentUser && (m.uid === currentUser.uid || isAdmin);
+
+        const div = document.createElement('div');
+        div.className = `msg ${currentUser && m.uid === currentUser.uid ? 'me' : 'other'}`;
+        div.innerHTML = `
+            <span class="msg-user">${m.name}</span>
+            <div onclick="openThread('${id}')">${m.text}</div>
+            <div class="reaction-area" id="reac-${id}"></div>
+            <div class="msg-tools">
+                <span onclick="react('${id}', '👍', '${basePath}')">👍</span>
+                <span onclick="openThread('${id}')">💬 שרשור</span>
+                ${isOwner ? `<span onclick="editMsg('${id}', '${m.text}', '${basePath}')">✏️</span>` : ''}
+                ${isOwner ? `<span onclick="deleteMsg('${id}', '${basePath}')">🗑️</span>` : ''}
+            </div>
+        `;
+        container.appendChild(div);
+        loadReactions(id, basePath);
     }
 
-    function addReaction(id, emoji) {
-        if(!user) return;
-        db.ref(`messages/${id}/reactions/${emoji}/${user.uid}`).set(true);
-    }
-
-    function loadReactions(id) {
-        db.ref(`messages/${id}/reactions`).on('value', s => {
-            const area = document.getElementById('reac-'+id);
-            if(!area) return;
-            area.innerHTML = "";
-            s.forEach(emojiGroup => {
-                const count = Object.keys(emojiGroup.val()).length;
-                area.innerHTML += `<span class="reaction-badge">${emojiGroup.key} ${count}</span>`;
-            });
-        });
-    }
-
-    // מערכת שרשור (Thread)
     function openThread(id) {
         activeThreadId = id;
         document.getElementById('thread-sidebar').style.display = 'flex';
-        db.ref(`messages/${id}/replies`).on('value', s => {
-            const tArea = document.getElementById('thread-msgs');
-            tArea.innerHTML = "";
-            s.forEach(child => {
-                const r = child.val();
-                tArea.innerHTML += `<div class="msg other"><span class="msg-user">${r.name}</span>${r.text}</div>`;
-            });
+        db.ref(`messages/${id}/replies`).on('value', snap => {
+            const container = document.getElementById('thread-msgs');
+            container.innerHTML = "";
+            snap.forEach(child => renderMessage(child, container, `messages/${id}/replies`));
         });
     }
 
     function closeThread() { document.getElementById('thread-sidebar').style.display = 'none'; }
 
-    function sendThreadMsg() {
-        const text = document.getElementById('thread-input').value;
-        if(!text || !activeThreadId) return;
-        db.ref(`messages/${activeThreadId}/replies`).push({
-            name: user.displayName, text: text, timestamp: Date.now()
-        });
-        document.getElementById('thread-input').value = "";
+    function react(id, emoji, path) {
+        if(!currentUser) return;
+        db.ref(`${path}/${id}/reactions/${emoji}/${currentUser.uid}`).set(true);
     }
 
-    function addEmoji(inputId, emoji) { document.getElementById(inputId).value += emoji; }
+    function loadReactions(id, path) {
+        db.ref(`${path}/${id}/reactions`).on('value', s => {
+            const area = document.getElementById('reac-'+id);
+            if(!area) return;
+            area.innerHTML = "";
+            s.forEach(emojiGroup => {
+                const count = Object.keys(emojiGroup.val()).length;
+                area.innerHTML += `<div class="reac-tag">${emojiGroup.key} <b>${count}</b></div>`;
+            });
+        });
+    }
 
+    function deleteMsg(id, path) { if(confirm("למחוק הודעה זו?")) db.ref(`${path}/${id}`).remove(); }
+    
+    function editMsg(id, oldText, path) {
+        const newText = prompt("ערוך הודעה:", oldText);
+        if(newText) db.ref(`${path}/${id}`).update({ text: newText });
+    }
 </script>
 </body>
 </html>
