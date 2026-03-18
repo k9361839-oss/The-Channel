@@ -58,13 +58,13 @@
 
 <script>
     const firebaseConfig = {
-        apiKey: "AIzaSyA3jI6XrKWvLb4KfqQz1GEgOHdjQRsu_KA",
-        authDomain: "eladim-final-chat.firebaseapp.com",
-        databaseURL: "https://eladim-final-chat-default-rtdb.firebaseio.com",
-        projectId: "eladim-final-chat",
-        storageBucket: "eladim-final-chat.firebasestorage.app",
-        messagingSenderId: "548712605637",
-        appId: "1:548712605637:web:b4c30d0641a86069444dac"
+        apiKey: "AIzaSyCBOb3dKOpwZ3anv5N8Lqlv2x3PPuokBFg",
+        authDomain: "eladim-chat-v2.firebaseapp.com",
+        databaseURL: "https://eladim-chat-v2-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "eladim-chat-v2",
+        storageBucket: "eladim-chat-v2.firebasestorage.app",
+        messagingSenderId: "514164337891",
+        appId: "1:514164337891:web:b0a098a9c063b3a2bb29d6"
     };
 
     firebase.initializeApp(firebaseConfig);
@@ -74,7 +74,7 @@
 
     function login() {
         const provider = new firebase.auth.GoogleAuthProvider();
-        auth.signInWithPopup(provider).catch(err => alert("שגיאה: " + err.message));
+        auth.signInWithPopup(provider).catch(err => alert("שגיאה בהתחברות: " + err.message));
     }
 
     auth.onAuthStateChanged(user => {
